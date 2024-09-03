@@ -1,0 +1,5 @@
+%{
+  "aja": {:hex, :aja, "0.7.0", "2ba5d752675bd77f8e20bcf8d6cee354913244c371ebecef70fcd18a1be1df45", [:mix], [{:jason, "~> 1.2", [hex: :jason, repo: "hexpm", optional: true]}], "hexpm", "85f966db2b703ca9ec4580c244699fa4915d97f946803ff2130ed74eb3721326"},
+  "stream_data": {:hex, :stream_data, "1.1.1", "fd515ca95619cca83ba08b20f5e814aaf1e5ebff114659dc9731f966c9226246", [:mix], [], "hexpm", "45d0cd46bd06738463fd53f22b70042dbb58c384bb99ef4e7576e7bb7d3b8c8c"},
+  "typed_struct": {:hex, :typed_struct, "0.3.0", "939789e3c1dca39d7170c87f729127469d1315dcf99fee8e152bb774b17e7ff7", [:mix], [], "hexpm", "c50bd5c3a61fe4e198a8504f939be3d3c85903b382bde4865579bc23111d1b6d"},
+}
