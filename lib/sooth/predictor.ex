@@ -201,8 +201,7 @@ defmodule Sooth.Predictor do
 
   ## Parameters
   - `predictor` - The predictor that will observe the event.
-  - `id` - A number that provides a context for the event, allowing the predictor to maintain
-           observation statistics for different contexts.
+  - `id` - A number that provides a context for the event, allowing the predictor to maintain observation statistics for different contexts.
   - `event` - A number representing the observed event.
 
   ## Options
