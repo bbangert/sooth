@@ -18,7 +18,7 @@ defmodule Sooth.Predictor do
     field(:contexts, Vector.t(Context.t()))
   end
 
-  @spec new(non_neg_integer()) :: Sooth.Predictor.t()
+  @spec new(non_neg_integer()) :: Predictor.t()
   @doc """
   Returns a new Sooth.Predictor.
 
@@ -31,11 +31,9 @@ defmodule Sooth.Predictor do
       %Sooth.Predictor{error_event: 2, contexts: vec([])}
 
   """
-  def new(error_event) do
-    %Sooth.Predictor{error_event: error_event, contexts: Vector.new()}
-  end
+  def new(error_event), do: %Predictor{error_event: error_event, contexts: Vector.new()}
 
-  @spec count(Sooth.Predictor.t(), non_neg_integer()) :: non_neg_integer()
+  @spec count(Predictor.t(), non_neg_integer()) :: non_neg_integer()
   @doc """
   Return the number of times the context has been observed.
 
@@ -57,9 +55,30 @@ defmodule Sooth.Predictor do
     context.count
   end
 
-  @spec distribution(Sooth.Predictor.t(), non_neg_integer()) :: Aja.Vector.t(Sooth.Statistic.t())
+  @spec size(Predictor.t(), non_neg_integer()) :: non_neg_integer()
   @doc """
-  Return a vector that yields each observed event within the context together with its probability.
+  Return the number of different events that have been observed within the given context.
+
+  ## Parameters
+  - `predictor` - The predictor that will calculate the size.
+  - `id` - A number that provides a context for observations.
+
+  ## Examples
+
+      iex> predictor = Sooth.Predictor.new(0)
+      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 3)
+      iex> Sooth.Predictor.size(predictor, 0)
+      1
+  """
+  def size(predictor, id) do
+    {_, context, _} = find_context(predictor, id)
+    vec_size(context.statistics)
+  end
+
+  @spec distribution(Predictor.t(), non_neg_integer()) :: Vector.t(Sooth.Statistic.t())
+  @doc """
+  Return a vector that yields each observed event within the context together with its
+  probability.
 
   ## Parameters
   - `predictor` - The predictor that will calculate the distribution.
@@ -77,8 +96,10 @@ defmodule Sooth.Predictor do
     context.statistics
   end
 
+  @spec frequency(Predictor.t(), non_neg_integer(), non_neg_integer()) :: float()
   @doc """
-  Return a number indicating the frequency that the event has been observed within the given context.
+  Return a number indicating the frequency that the event has been observed within the
+  given context.
 
   ## Parameters
   - `predictor` - The predictor that will calculate the frequency.
@@ -118,14 +139,15 @@ defmodule Sooth.Predictor do
     end
   end
 
-  @spec observe(Sooth.Predictor.t(), non_neg_integer(), non_neg_integer()) ::
-          {map(), non_neg_integer()}
+  @spec observe(Predictor.t(), non_neg_integer(), non_neg_integer()) ::
+          {Predictor.t(), non_neg_integer()}
   @doc """
   Register an observation of the given event within the given context.
 
   ## Parameters
   - `predictor` - The predictor that will observe the event.
-  - `id` - A number that provides a context for the event, allowing the predictor to maintain observation statistics for different contexts.
+  - `id` - A number that provides a context for the event, allowing the predictor to maintain
+           observation statistics for different contexts.
   - `event` - A number representing the observed event.
 
   ## Examples
@@ -146,6 +168,7 @@ defmodule Sooth.Predictor do
     {put_in(predictor.contexts[index], context), statistic.count}
   end
 
+  @spec select(Predictor.t(), non_neg_integer(), non_neg_integer()) :: non_neg_integer()
   @doc """
   Return an event that may occur in the given context, based on the limit, which should be
   between 1 and #count. The event is selected by iterating through all observed events for
@@ -218,6 +241,13 @@ defmodule Sooth.Predictor do
 
   defp select_event(_, _, _, _, err), do: err
 
+  @spec find_context(Predictor.t(), non_neg_integer()) ::
+          {Predictor.t(), Context.t(), non_neg_integer()}
+  @doc """
+  Find a context in the predictor.
+
+  This is an implementation detail and should not be used directly.
+  """
   def find_context(%Predictor{contexts: contexts} = predictor, id) do
     case binary_search(contexts, id, 0, vec_size(contexts) - 1) do
       {:found, context, index} -> {predictor, context, index}

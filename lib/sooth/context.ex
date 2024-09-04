@@ -1,4 +1,10 @@
 defmodule Sooth.Context do
+  @moduledoc """
+  Provides the Context module for Sooth.
+
+  This module is mainly used for internal implementation details of the Sooth.Predictor module
+  and should not be used directly.
+  """
   import Aja
   alias Aja.Vector
   alias Sooth.Statistic
@@ -48,6 +54,11 @@ defmodule Sooth.Context do
 
   @spec find_statistic(Sooth.Context.t(), non_neg_integer()) ::
           {Sooth.Context.t(), Sooth.Statistic.t(), non_neg_integer()}
+  @doc """
+  Find a statistic in a context.
+
+  This is an implementation detail and should not be used directly.
+  """
   def find_statistic(%Context{statistics: statistics} = context, event) do
     case binary_search(statistics, event, 0, vec_size(statistics) - 1) do
       {:found, statistic, index} ->
