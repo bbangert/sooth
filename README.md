@@ -1,11 +1,14 @@
 # Sooth
 
-**TODO: Add description**
+A minimal stochastic predictive model, implemented in Elixir using Aja.Vector
+for efficiency. No assummptions about PRNG or real-world significance of
+context/event.
+
+This library has been ported from the [Ruby/C Sooth library](https://github.com/kranzky/sooth).
 
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `sooth` to your list of dependencies in `mix.exs`:
+This package can be installed by adding `sooth` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
@@ -14,8 +17,3 @@ def deps do
   ]
 end
 ```
-
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/sooth>.
-
