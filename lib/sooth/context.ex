@@ -45,11 +45,8 @@ defmodule Sooth.Context do
   """
   def observe(context, event) do
     {context, statistic, index} = find_statistic(context, event)
-
-    {%Context{
-       put_in(context.statistics[index], Statistic.increment(statistic))
-       | count: context.count + 1
-     }, statistic}
+    statistic = Statistic.increment(statistic)
+    {%Context{put_in(context.statistics[index], statistic) | count: context.count + 1}, statistic}
   end
 
   @spec find_statistic(Sooth.Context.t(), non_neg_integer()) ::

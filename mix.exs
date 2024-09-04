@@ -21,6 +21,7 @@ defmodule Sooth.MixProject do
   defp deps do
     [
       {:aja, "~> 0.7.0"},
+      {:math, "~> 0.7.0"},
       {:typed_struct, "~> 0.3.0"},
       {:stream_data, "~> 1.1", only: :test},
       {:ex_doc, "~> 0.34.2", only: :dev, runtime: false}

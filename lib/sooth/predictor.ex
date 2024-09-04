@@ -5,6 +5,7 @@ defmodule Sooth.Predictor do
   This is the main entry point for the Sooth library.
   """
   import Aja
+  import Math
   alias Aja.Vector
   alias Sooth.Context
   alias Sooth.Predictor
@@ -45,8 +46,10 @@ defmodule Sooth.Predictor do
 
       iex> predictor = Sooth.Predictor.new(0)
       iex> {predictor, _} = Sooth.Predictor.observe(predictor, 2, 3)
+      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 2, 3)
+      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 2, 2)
       iex> Sooth.Predictor.count(predictor, 2)
-      1
+      3
       iex> Sooth.Predictor.count(predictor, 3)
       0
   """
@@ -67,8 +70,11 @@ defmodule Sooth.Predictor do
 
       iex> predictor = Sooth.Predictor.new(0)
       iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 3)
+      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 3)
+      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 3)
+      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 1)
       iex> Sooth.Predictor.size(predictor, 0)
-      1
+      2
   """
   def size(predictor, id) do
     {_, context, _} = find_context(predictor, id)
@@ -77,7 +83,7 @@ defmodule Sooth.Predictor do
 
   @spec distribution(Predictor.t(), non_neg_integer()) :: Vector.t(Sooth.Statistic.t())
   @doc """
-  Return a vector that yields each observed event within the context together with its
+  Return a stream that yields each observed event within the context together with its
   probability.
 
   ## Parameters
@@ -88,12 +94,60 @@ defmodule Sooth.Predictor do
 
       iex> predictor = Sooth.Predictor.new(0)
       iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 3)
-      iex> Sooth.Predictor.distribution(predictor, 0)
-      vec([%Sooth.Statistic{event: 3, count: 1}])
+      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 2)
+      iex> Sooth.Predictor.distribution(predictor, 0) |> Enum.to_list()
+      [{2, 0.5}, {3, 0.5}]
+      iex> Sooth.Predictor.distribution(predictor, 1)
+      nil
   """
   def distribution(predictor, id) do
     {_, context, _} = find_context(predictor, id)
-    context.statistics
+
+    cond do
+      vec_size(context.statistics) == 0 -> nil
+      true -> Stream.map(context.statistics, &{&1.event, &1.count / context.count})
+    end
+  end
+
+  @doc """
+  Return a number indicating how uncertain the predictor is about which event is likely
+  to be observed after the given context. Note that nil will be returned if the context
+  has never been observed.
+
+  Returns:
+    The uncertainty, which is calculated to be the Shannon entropy of the `distribution`
+    over the context.
+
+  ## Parameters
+  - `predictor` - The predictor that will calculate the uncertainty.
+  - `id` - A number that provides a context for observations.
+
+  ## Examples
+
+      iex> predictor = Sooth.Predictor.new(0)
+      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 3)
+      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 3)
+      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 4)
+      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 5)
+      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 1, 2)
+      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 1, 3)
+      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 1, 4)
+      iex> Sooth.Predictor.uncertainty(predictor, 0)
+      1.5
+      iex> Sooth.Predictor.uncertainty(predictor, 1)
+      1.584962500721156
+      iex> Sooth.Predictor.uncertainty(predictor, 2)
+      nil
+  """
+  def uncertainty(predictor, id) do
+    {_ , context, _} = find_context(predictor, id)
+    cond do
+      context.count == 0 -> nil
+      true -> Enum.reduce(context.statistics, 0.0, fn stat, acc ->
+        frequency = stat.count / context.count
+        acc - (frequency * log2(frequency))
+      end)
+    end
   end
 
   @spec frequency(Predictor.t(), non_neg_integer(), non_neg_integer()) :: float()
@@ -153,7 +207,7 @@ defmodule Sooth.Predictor do
   ## Examples
 
       iex> predictor = Sooth.Predictor.new(0)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 3)
+      iex> {predictor, count} = Sooth.Predictor.observe(predictor, 0, 3)
       iex> predictor
       %Sooth.Predictor{
         error_event: 0,
@@ -161,6 +215,8 @@ defmodule Sooth.Predictor do
           %Sooth.Context{id: 0, count: 1, statistics: vec([%Sooth.Statistic{event: 3, count: 1}])}
         ])
       }
+      iex> count
+      1
   """
   def observe(predictor, id, event) do
     {predictor, context, index} = find_context(predictor, id)
@@ -186,24 +242,23 @@ defmodule Sooth.Predictor do
 
   ## Examples
 
-      iex> predictor = Sooth.Predictor.new(0)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 3)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 3)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 4)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 5)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 1, 2)
-      iex> Sooth.Predictor.select(predictor, 0, 1)
-      3
-      iex> Sooth.Predictor.select(predictor, 0, 2)
-      3
-      iex> Sooth.Predictor.select(predictor, 0, 3)
-      4
-      iex> Sooth.Predictor.select(predictor, 0, 4)
-      5
+      iex> predictor = Sooth.Predictor.new(99)
+      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 1, 4)
+      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 1, 3)
+      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 1, 4)
+      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 1, 5)
       iex> Sooth.Predictor.select(predictor, 1, 1)
-      2
-      iex> Sooth.Predictor.select(predictor, 0, 90)
-      0
+      3
+      iex> Sooth.Predictor.select(predictor, 1, 2)
+      4
+      iex> Sooth.Predictor.select(predictor, 1, 3)
+      4
+      iex> Sooth.Predictor.select(predictor, 1, 4)
+      5
+      iex> Sooth.Predictor.select(predictor, 0, 0)
+      99
+      iex> Sooth.Predictor.select(predictor, 1, 5)
+      99
 
   """
   def select(predictor, id, limit) do
@@ -240,6 +295,54 @@ defmodule Sooth.Predictor do
   end
 
   defp select_event(_, _, _, _, err), do: err
+
+  @doc """
+  Return a number indicating the surprise received by the predictor when it observed
+  the given event within the given context. Note that nil will be returned if the
+  event has never been observed within the context.
+
+  Returns:
+    The surprise, which is calculated to be the Shannon pointwise mutual information
+    of the event according to the `distribution` over the context.
+
+  ## Parameters
+  - `predictor` - The predictor that will calculate the surprise.
+  - `id` - A number that provides a context for observations.
+  - `event` - A number representing the observed event.
+
+  ## Examples
+
+      iex> predictor = Sooth.Predictor.new(9)
+      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 3)
+      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 3)
+      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 5)
+      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 1, 2)
+      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 1, 3)
+      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 1, 4)
+      iex> Sooth.Predictor.surprise(predictor, 0, 3)
+      0.5849625007211563
+      iex> Sooth.Predictor.surprise(predictor, 0, 4)
+      nil
+      iex> Sooth.Predictor.surprise(predictor, 1, 2)
+      1.5849625007211563
+  """
+  def surprise(predictor, id, event) do
+    {_, context, _} = find_context(predictor, id)
+
+    cond do
+      context.count == 0 ->
+        nil
+
+      true ->
+        {_, statistic, _} = Context.find_statistic(context, event)
+
+        if statistic.count == 0 do
+          nil
+        else
+          -log2(statistic.count / context.count)
+        end
+    end
+  end
 
   @spec find_context(Predictor.t(), non_neg_integer()) ::
           {Predictor.t(), Context.t(), non_neg_integer()}
