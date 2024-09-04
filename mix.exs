@@ -1,7 +1,7 @@
 defmodule Sooth.MixProject do
   use Mix.Project
 
-  @version "0.2.0"
+  @version "0.2.1"
   @description "A minimal stochastic predictive model"
 
   def project do
