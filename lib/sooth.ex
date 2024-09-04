@@ -5,16 +5,4 @@ defmodule Sooth do
   context/event.
   """
 
-  @doc """
-  Hello world.
-
-  ## Examples
-
-      iex> Sooth.hello()
-      :world
-
-  """
-  def hello do
-    :world
-  end
 end
