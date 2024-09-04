@@ -14,6 +14,7 @@ defmodule Sooth.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       package: package(),
+      test_coverage: [tool: ExCoveralls],
     ]
   end
 
@@ -29,7 +30,10 @@ defmodule Sooth.MixProject do
       {:aja, "~> 0.7.0"},
       {:math, "~> 0.7.0"},
       {:typed_struct, "~> 0.3.0"},
+
+      # Dev/test dependencies
       {:stream_data, "~> 1.1", only: :test},
+      {:excoveralls, "~> 0.18.2", only: :test},
       {:ex_doc, "~> 0.34.2", only: :dev, runtime: false}
     ]
   end

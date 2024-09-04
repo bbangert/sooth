@@ -282,7 +282,7 @@ defmodule Sooth.Predictor do
     end
   end
 
-  defp select_event(statistics, limit, index, last, err) when index <= last do
+  defp select_event(statistics, limit, index, last, err) do
     statistic = statistics[index]
 
     cond do
@@ -293,8 +293,6 @@ defmodule Sooth.Predictor do
         statistic.event
     end
   end
-
-  defp select_event(_, _, _, _, err), do: err
 
   @doc """
   Return a number indicating the surprise received by the predictor when it observed
