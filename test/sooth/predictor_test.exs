@@ -34,10 +34,7 @@ defmodule SoothPredictorTest do
             ) do
         predictor =
           Enum.reduce(ids, Sooth.Predictor.new(0), fn id, predictor ->
-            Enum.reduce(events, predictor, fn event, predictor ->
-              {predictor, _} = Sooth.Predictor.observe(predictor, id, event)
-              predictor
-            end)
+            Enum.reduce(events, predictor, &Sooth.Predictor.observe(&2, id, &1))
           end)
 
         # Build a map of {id, event} -> count
@@ -66,18 +63,17 @@ defmodule SoothPredictorTest do
     end
 
     test "has zero uncertainty for a lone context" do
-      predictor = Predictor.new(0)
-      {predictor, _} = Predictor.observe(predictor, 1, 3)
+      predictor =
+        Predictor.new(0)
+        |> Predictor.observe(1, 3)
+
       assert Predictor.uncertainty(predictor, 1) == 0
     end
 
     test "has maximal uncertainty for a uniform distribution" do
       predictor =
         1..256
-        |> Enum.reduce(Predictor.new(42), fn event, predictor ->
-          {predictor, _} = Predictor.observe(predictor, 1, event)
-          predictor
-        end)
+        |> Enum.reduce(Predictor.new(42), &Predictor.observe(&2, 1, &1))
 
       assert Predictor.uncertainty(predictor, 1) == 8
     end
@@ -90,24 +86,25 @@ defmodule SoothPredictorTest do
     end
 
     test "has no surprise for a new event" do
-      predictor = Predictor.new(42)
-      {predictor, _} = Predictor.observe(predictor, 1, 3)
+      predictor =
+        Predictor.new(42)
+        |> Predictor.observe(1, 3)
+
       assert Predictor.surprise(predictor, 1, 0) == nil
     end
 
     test "has zero surprise for a lone event" do
-      predictor = Predictor.new(42)
-      {predictor, _} = Predictor.observe(predictor, 1, 3)
+      predictor =
+        Predictor.new(42)
+        |> Predictor.observe(1, 3)
+
       assert Predictor.surprise(predictor, 1, 3) == 0
     end
 
     test "has uniform surprise for a uniform distribution" do
       predictor =
         1..256
-        |> Enum.reduce(Predictor.new(42), fn event, predictor ->
-          {predictor, _} = Predictor.observe(predictor, 1, event)
-          predictor
-        end)
+        |> Enum.reduce(Predictor.new(42), &Predictor.observe(&2, 1, &1))
 
       assert Predictor.surprise(predictor, 1, 3) == 8
     end
@@ -120,24 +117,25 @@ defmodule SoothPredictorTest do
     end
 
     test "returns zero for a new event" do
-      predictor = Predictor.new(42)
-      {predictor, _} = Predictor.observe(predictor, 1, 3)
+      predictor =
+        Predictor.new(42)
+        |> Predictor.observe(1, 3)
+
       assert Predictor.frequency(predictor, 1, 4) == 0
     end
 
     test "is one for a lone event" do
-      predictor = Predictor.new(42)
-      {predictor, _} = Predictor.observe(predictor, 1, 3)
+      predictor =
+        Predictor.new(42)
+        |> Predictor.observe(1, 3)
+
       assert Predictor.frequency(predictor, 1, 3) == 1
     end
 
     test "is uniform for a uniform distribution" do
       predictor =
         1..100
-        |> Enum.reduce(Predictor.new(42), fn event, predictor ->
-          {predictor, _} = Predictor.observe(predictor, 1, event)
-          predictor
-        end)
+        |> Enum.reduce(Predictor.new(42), &Predictor.observe(&2, 1, &1))
 
       assert Predictor.frequency(predictor, 1, 3) == 0.01
     end

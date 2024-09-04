@@ -44,10 +44,11 @@ defmodule Sooth.Predictor do
 
   ## Examples
 
-      iex> predictor = Sooth.Predictor.new(0)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 2, 3)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 2, 3)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 2, 2)
+      iex> predictor =
+      ...>  Sooth.Predictor.new(0)
+      ...>  |> Sooth.Predictor.observe(2, 3)
+      ...>  |> Sooth.Predictor.observe(2, 3)
+      ...>  |> Sooth.Predictor.observe(2, 2)
       iex> Sooth.Predictor.count(predictor, 2)
       3
       iex> Sooth.Predictor.count(predictor, 3)
@@ -69,10 +70,10 @@ defmodule Sooth.Predictor do
   ## Examples
 
       iex> predictor = Sooth.Predictor.new(0)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 3)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 3)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 3)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 1)
+      ...>  |> Sooth.Predictor.observe(0, 3)
+      ...>  |> Sooth.Predictor.observe(0, 3)
+      ...>  |> Sooth.Predictor.observe(0, 3)
+      ...>  |> Sooth.Predictor.observe(0, 1)
       iex> Sooth.Predictor.size(predictor, 0)
       2
   """
@@ -93,8 +94,8 @@ defmodule Sooth.Predictor do
   ## Examples
 
       iex> predictor = Sooth.Predictor.new(0)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 3)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 2)
+      ...> |> Sooth.Predictor.observe(0, 3)
+      ...> |> Sooth.Predictor.observe(0, 2)
       iex> Sooth.Predictor.distribution(predictor, 0) |> Enum.to_list()
       [{2, 0.5}, {3, 0.5}]
       iex> Sooth.Predictor.distribution(predictor, 1)
@@ -125,13 +126,13 @@ defmodule Sooth.Predictor do
   ## Examples
 
       iex> predictor = Sooth.Predictor.new(0)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 3)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 3)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 4)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 5)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 1, 2)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 1, 3)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 1, 4)
+      ...> |> Sooth.Predictor.observe(0, 3)
+      ...> |> Sooth.Predictor.observe(0, 3)
+      ...> |> Sooth.Predictor.observe(0, 4)
+      ...> |> Sooth.Predictor.observe(0, 5)
+      ...> |> Sooth.Predictor.observe(1, 2)
+      ...> |> Sooth.Predictor.observe(1, 3)
+      ...> |> Sooth.Predictor.observe(1, 4)
       iex> Sooth.Predictor.uncertainty(predictor, 0)
       1.5
       iex> Sooth.Predictor.uncertainty(predictor, 1)
@@ -163,11 +164,11 @@ defmodule Sooth.Predictor do
   ## Examples
 
       iex> predictor = Sooth.Predictor.new(0)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 3)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 3)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 4)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 5)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 1, 2)
+      ...> |> Sooth.Predictor.observe(0, 3)
+      ...> |> Sooth.Predictor.observe(0, 3)
+      ...> |> Sooth.Predictor.observe(0, 4)
+      ...> |> Sooth.Predictor.observe(0, 5)
+      ...> |> Sooth.Predictor.observe(1, 2)
       iex> Sooth.Predictor.frequency(predictor, 0, 3)
       0.5
       iex> Sooth.Predictor.frequency(predictor, 0, 4)
@@ -204,10 +205,14 @@ defmodule Sooth.Predictor do
            observation statistics for different contexts.
   - `event` - A number representing the observed event.
 
+  ## Options
+  - `:include_count` - If this option is given, the function will return the count of the context.
+  - `:include_statistic` - If this option is given, the function will return the statistic of the event.
+
   ## Examples
 
       iex> predictor = Sooth.Predictor.new(0)
-      iex> {predictor, count} = Sooth.Predictor.observe(predictor, 0, 3)
+      iex> {predictor, count} = Sooth.Predictor.observe(predictor, 0, 3, :include_count)
       iex> predictor
       %Sooth.Predictor{
         error_event: 0,
@@ -219,9 +224,19 @@ defmodule Sooth.Predictor do
       1
   """
   def observe(predictor, id, event) do
+    {context, _} = observe(predictor, id, event, :include_statistic)
+    context
+  end
+
+  def observe(predictor, id, event, :include_count) do
+    {context, statistic} = observe(predictor, id, event, :include_statistic)
+    {context, statistic.count}
+  end
+
+  def observe(predictor, id, event, :include_statistic) do
     {predictor, context, index} = find_context(predictor, id)
     {context, statistic} = Context.observe(context, event)
-    {put_in(predictor.contexts[index], context), statistic.count}
+    {put_in(predictor.contexts[index], context), statistic}
   end
 
   @spec select(Predictor.t(), non_neg_integer(), non_neg_integer()) :: non_neg_integer()
@@ -243,10 +258,10 @@ defmodule Sooth.Predictor do
   ## Examples
 
       iex> predictor = Sooth.Predictor.new(99)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 1, 4)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 1, 3)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 1, 4)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 1, 5)
+      ...> |> Sooth.Predictor.observe(1, 4)
+      ...> |> Sooth.Predictor.observe(1, 3)
+      ...> |> Sooth.Predictor.observe(1, 4)
+      ...> |> Sooth.Predictor.observe(1, 5)
       iex> Sooth.Predictor.select(predictor, 1, 1)
       3
       iex> Sooth.Predictor.select(predictor, 1, 2)
@@ -311,12 +326,12 @@ defmodule Sooth.Predictor do
   ## Examples
 
       iex> predictor = Sooth.Predictor.new(9)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 3)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 3)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 0, 5)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 1, 2)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 1, 3)
-      iex> {predictor, _} = Sooth.Predictor.observe(predictor, 1, 4)
+      ...> |> Sooth.Predictor.observe(0, 3)
+      ...> |> Sooth.Predictor.observe(0, 3)
+      ...> |> Sooth.Predictor.observe(0, 5)
+      ...> |> Sooth.Predictor.observe(1, 2)
+      ...> |> Sooth.Predictor.observe(1, 3)
+      ...> |> Sooth.Predictor.observe(1, 4)
       iex> Sooth.Predictor.surprise(predictor, 0, 3)
       0.5849625007211563
       iex> Sooth.Predictor.surprise(predictor, 0, 4)
