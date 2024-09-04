@@ -82,7 +82,7 @@ defmodule Sooth.Predictor do
     vec_size(context.statistics)
   end
 
-  @spec distribution(Predictor.t(), non_neg_integer()) :: Vector.t(Sooth.Statistic.t())
+  @spec distribution(Predictor.t(), non_neg_integer()) :: nil | list({non_neg_integer(), float()})
   @doc """
   Return a stream that yields each observed event within the context together with its
   probability.
@@ -96,7 +96,7 @@ defmodule Sooth.Predictor do
       iex> predictor = Sooth.Predictor.new(0)
       ...> |> Sooth.Predictor.observe(0, 3)
       ...> |> Sooth.Predictor.observe(0, 2)
-      iex> Sooth.Predictor.distribution(predictor, 0) |> Enum.to_list()
+      iex> Sooth.Predictor.distribution(predictor, 0)
       [{2, 0.5}, {3, 0.5}]
       iex> Sooth.Predictor.distribution(predictor, 1)
       nil
@@ -106,7 +106,7 @@ defmodule Sooth.Predictor do
 
     cond do
       vec_size(context.statistics) == 0 -> nil
-      true -> Stream.map(context.statistics, &{&1.event, &1.count / context.count})
+      true -> Enum.map(context.statistics, &{&1.event, &1.count / context.count})
     end
   end
 
@@ -141,13 +141,17 @@ defmodule Sooth.Predictor do
       nil
   """
   def uncertainty(predictor, id) do
-    {_ , context, _} = find_context(predictor, id)
+    {_, context, _} = find_context(predictor, id)
+
     cond do
-      context.count == 0 -> nil
-      true -> Enum.reduce(context.statistics, 0.0, fn stat, acc ->
-        frequency = stat.count / context.count
-        acc - (frequency * log2(frequency))
-      end)
+      context.count == 0 ->
+        nil
+
+      true ->
+        Enum.reduce(context.statistics, 0.0, fn stat, acc ->
+          frequency = stat.count / context.count
+          acc - frequency * log2(frequency)
+        end)
     end
   end
 
@@ -194,8 +198,7 @@ defmodule Sooth.Predictor do
     end
   end
 
-  @spec observe(Predictor.t(), non_neg_integer(), non_neg_integer()) ::
-          {Predictor.t(), non_neg_integer()}
+  @spec observe(Predictor.t(), non_neg_integer(), non_neg_integer()) :: Predictor.t()
   @doc """
   Register an observation of the given event within the given context.
 
@@ -227,11 +230,23 @@ defmodule Sooth.Predictor do
     context
   end
 
+  @spec observe(
+          Predictor.t(),
+          non_neg_integer(),
+          non_neg_integer(),
+          :include_count
+        ) :: {Predictor.t(), non_neg_integer()}
   def observe(predictor, id, event, :include_count) do
     {context, statistic} = observe(predictor, id, event, :include_statistic)
     {context, statistic.count}
   end
 
+  @spec observe(
+          Predictor.t(),
+          non_neg_integer(),
+          non_neg_integer(),
+          :include_statistic
+        ) :: {Predictor.t(), Sooth.Statistic.t()}
   def observe(predictor, id, event, :include_statistic) do
     {predictor, context, index} = find_context(predictor, id)
     {context, statistic} = Context.observe(context, event)
