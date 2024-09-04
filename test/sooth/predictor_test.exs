@@ -58,7 +58,7 @@ defmodule SoothPredictorTest do
     end
   end
 
-  describe "uncertainty/" do
+  describe "uncertainty/2" do
     test "has no uncertainty for a new context" do
       predictor = Predictor.new(0)
       assert Predictor.uncertainty(predictor, 0) == nil
