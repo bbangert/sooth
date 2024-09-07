@@ -5,11 +5,13 @@ defmodule Sooth.Context do
   This module is mainly used for internal implementation details of the Sooth.Predictor module
   and should not be used directly.
   """
+  use TypedStruct
+
   import Aja
+
   alias Aja.Vector
   alias Sooth.Statistic
   alias Sooth.Context
-  use TypedStruct
 
   typedstruct enforce: true do
     @typedoc "A Context of id/count/statistics"

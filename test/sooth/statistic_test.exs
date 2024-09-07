@@ -1,5 +1,6 @@
 defmodule SoothStatisticTest do
   use ExUnit.Case
+
   doctest Sooth.Statistic
 
   test "creates empty statistic" do

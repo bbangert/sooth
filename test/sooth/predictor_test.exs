@@ -1,8 +1,10 @@
 defmodule SoothPredictorTest do
-  alias Sooth.Predictor
-  import Aja
   use ExUnit.Case
   use ExUnitProperties
+
+  import Aja
+
+  alias Sooth.Predictor
 
   doctest Sooth.Predictor
 

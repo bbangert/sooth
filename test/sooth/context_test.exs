@@ -1,7 +1,8 @@
 defmodule SoothContextTest do
-  import Aja
   use ExUnit.Case
   use ExUnitProperties
+
+  import Aja
 
   doctest Sooth.Context
 

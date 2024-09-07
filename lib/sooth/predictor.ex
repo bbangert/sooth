@@ -4,13 +4,15 @@ defmodule Sooth.Predictor do
 
   This is the main entry point for the Sooth library.
   """
+  use TypedStruct
+
   import Aja
   import Math
+
   alias Aja.Vector
   alias Sooth.Context
   alias Sooth.Predictor
 
-  use TypedStruct
 
   typedstruct enforce: true do
     @typedoc "A Predictor of error_event/contexts"
@@ -290,13 +292,12 @@ defmodule Sooth.Predictor do
       99
 
   """
+  def select(predictor, _id, 0), do: predictor.error_event
+
   def select(predictor, id, limit) do
     {_, context, _} = find_context(predictor, id)
 
     cond do
-      limit == 0 ->
-        predictor.error_event
-
       limit > context.count ->
         predictor.error_event
 
