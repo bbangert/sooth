@@ -2,14 +2,12 @@ defmodule SoothPredictorTest do
   use ExUnit.Case
   use ExUnitProperties
 
-  import Aja
-
   alias Sooth.Predictor
 
   doctest Sooth.Predictor
 
   test "creates empty predictor" do
-    assert match?(%Predictor{error_event: 0, contexts: vec([])}, Predictor.new(0))
+    assert match?(%Predictor{error_event: 0, context_set: _, context_map: %{}}, Predictor.new(0))
   end
 
   describe "find_context/2" do
@@ -18,12 +16,10 @@ defmodule SoothPredictorTest do
         predictor =
           Enum.shuffle(ids)
           |> Enum.reduce(Sooth.Predictor.new(0), fn id, predictor ->
-            {predictor, _, _} = Sooth.Predictor.find_context(predictor, id)
-            predictor
+            Sooth.Predictor.observe(predictor, id, 0)
           end)
 
-        contexts = Enum.sort(ids) |> Enum.map(&Sooth.Context.new(&1))
-        assert Aja.Vector.new(contexts) == predictor.contexts
+        assert Enum.sort(ids) == :gb_sets.to_list(predictor.context_set)
       end
     end
   end
@@ -48,12 +44,27 @@ defmodule SoothPredictorTest do
           end)
 
         # Verify all the statistic counts match the counts
-        Enum.each(predictor.contexts, fn context ->
-          Enum.each(context.statistics, fn stat ->
+        Enum.each(Map.values(predictor.context_map), fn context ->
+          Enum.each(Map.values(context.statistic_objects), fn stat ->
             assert Map.get(counts, {context.id, stat.event}) == stat.count
           end)
         end)
       end
+    end
+  end
+
+  describe "select/2" do
+    test "selects the context with the highest count" do
+      predictor =
+        Predictor.new(0)
+        |> Predictor.observe(1, 3)
+        |> Predictor.observe(1, 2)
+        |> Predictor.observe(2, 3)
+
+      assert Predictor.select(predictor, 1, 2) == 3
+      assert Predictor.select(predictor, 1, 1) == 2
+      assert Predictor.select(predictor, 1, 3) == 0
+      assert Predictor.count(predictor, 1) == 2
     end
   end
 

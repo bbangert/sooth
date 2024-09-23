@@ -2,28 +2,18 @@ defmodule SoothContextTest do
   use ExUnit.Case
   use ExUnitProperties
 
-  import Aja
-
   doctest Sooth.Context
 
   test "creates empty context" do
-    assert match?(%Sooth.Context{id: 0, count: 0, statistics: vec([])}, Sooth.Context.new(0))
-  end
-
-  describe "find_statistic/2" do
-    property "inserts unique events that are sorted" do
-      check all(events <- uniq_list_of(non_negative_integer(), max_tries: 500)) do
-        context =
-          Enum.shuffle(events)
-          |> Enum.reduce(Sooth.Context.new(0), fn event, context ->
-            {context, _, _} = Sooth.Context.find_statistic(context, event)
-            context
-          end)
-
-        stats = Enum.sort(events) |> Enum.map(&Sooth.Statistic.new(&1, 0))
-        assert Aja.Vector.new(stats) == context.statistics
-      end
-    end
+    assert match?(
+             %Sooth.Context{
+               id: 0,
+               count: 0,
+               statistic_set: _gbset,
+               statistic_objects: %{}
+             },
+             Sooth.Context.new(0)
+           )
   end
 
   describe "observe/2" do
@@ -45,7 +35,7 @@ defmodule SoothContextTest do
         assert context.count == length(events)
 
         # Verify all the statistic counts match the counts
-        Enum.each(context.statistics, fn stat ->
+        Enum.each(Map.values(context.statistic_objects), fn stat ->
           assert Map.get(counts, stat.event) == stat.count
         end)
       end
