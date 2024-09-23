@@ -4,5 +4,4 @@ defmodule Sooth do
   for efficiency. No assummptions about PRNG or real-world significance of
   context/event.
   """
-
 end

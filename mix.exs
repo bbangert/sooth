@@ -1,7 +1,7 @@
 defmodule Sooth.MixProject do
   use Mix.Project
 
-  @version "0.2.2"
+  @version "0.3.0"
   @description "A minimal stochastic predictive model"
 
   def project do
@@ -14,7 +14,7 @@ defmodule Sooth.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       package: package(),
-      test_coverage: [tool: ExCoveralls],
+      test_coverage: [tool: ExCoveralls]
     ]
   end
 
@@ -27,7 +27,6 @@ defmodule Sooth.MixProject do
 
   defp deps do
     [
-      {:aja, "~> 0.7.0"},
       {:math, "~> 0.7.0"},
       {:typed_struct, "~> 0.3.0"},
 

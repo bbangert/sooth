@@ -6,19 +6,17 @@ defmodule Sooth.Predictor do
   """
   use TypedStruct
 
-  import Aja
   import Math
 
-  alias Aja.Vector
   alias Sooth.Context
   alias Sooth.Predictor
-
 
   typedstruct enforce: true do
     @typedoc "A Predictor of error_event/contexts"
 
     field(:error_event, non_neg_integer())
-    field(:contexts, Vector.t(Context.t()))
+    field(:context_set, :gb_sets)
+    field(:context_map, map())
   end
 
   @spec new(non_neg_integer()) :: Predictor.t()
@@ -31,10 +29,10 @@ defmodule Sooth.Predictor do
   ## Examples
 
       iex> Sooth.Predictor.new(2)
-      %Sooth.Predictor{error_event: 2, contexts: vec([])}
-
+      #Sooth.Predictor<error_event: 2, context_set: [], context_map: %{}>
   """
-  def new(error_event), do: %Predictor{error_event: error_event, contexts: Vector.new()}
+  def new(error_event),
+    do: %Predictor{error_event: error_event, context_set: :gb_sets.new(), context_map: %{}}
 
   @spec count(Predictor.t(), non_neg_integer()) :: non_neg_integer()
   @doc """
@@ -57,8 +55,10 @@ defmodule Sooth.Predictor do
       0
   """
   def count(predictor, id) do
-    {_, context, _} = find_context(predictor, id)
-    context.count
+    case Map.get(predictor.context_map, id) do
+      nil -> 0
+      context -> context.count
+    end
   end
 
   @spec size(Predictor.t(), non_neg_integer()) :: non_neg_integer()
@@ -80,8 +80,10 @@ defmodule Sooth.Predictor do
       2
   """
   def size(predictor, id) do
-    {_, context, _} = find_context(predictor, id)
-    vec_size(context.statistics)
+    case Map.get(predictor.context_map, id) do
+      nil -> 0
+      context -> map_size(context.statistic_objects)
+    end
   end
 
   @spec distribution(Predictor.t(), non_neg_integer()) :: nil | list({non_neg_integer(), float()})
@@ -104,11 +106,9 @@ defmodule Sooth.Predictor do
       nil
   """
   def distribution(predictor, id) do
-    {_, context, _} = find_context(predictor, id)
-
-    cond do
-      vec_size(context.statistics) == 0 -> nil
-      true -> Enum.map(context.statistics, &{&1.event, &1.count / context.count})
+    case Map.get(predictor.context_map, id) do
+      nil -> nil
+      context -> Enum.map(Context.walk_statistics(context), &{&1.event, &1.count / context.count})
     end
   end
 
@@ -143,14 +143,12 @@ defmodule Sooth.Predictor do
       nil
   """
   def uncertainty(predictor, id) do
-    {_, context, _} = find_context(predictor, id)
-
-    cond do
-      context.count == 0 ->
+    case Map.get(predictor.context_map, id) do
+      nil ->
         nil
 
-      true ->
-        Enum.reduce(context.statistics, 0.0, fn stat, acc ->
+      context ->
+        Enum.reduce(Map.values(context.statistic_objects), 0.0, fn stat, acc ->
           frequency = stat.count / context.count
           acc - frequency * log2(frequency)
         end)
@@ -185,18 +183,15 @@ defmodule Sooth.Predictor do
       1.0
   """
   def frequency(predictor, id, event) do
-    {_, context, _} = find_context(predictor, id)
-
-    if context.count == 0 do
-      0.0
-    else
-      {_, statistic, _} = Context.find_statistic(context, event)
-
-      if statistic.count == 0 do
+    case Map.get(predictor.context_map, id) do
+      nil ->
         0.0
-      else
-        statistic.count / context.count
-      end
+
+      context ->
+        case Map.get(context.statistic_objects, event) do
+          nil -> 0.0
+          stat -> stat.count / context.count
+        end
     end
   end
 
@@ -218,12 +213,7 @@ defmodule Sooth.Predictor do
       iex> predictor = Sooth.Predictor.new(0)
       iex> {predictor, count} = Sooth.Predictor.observe(predictor, 0, 3, :include_count)
       iex> predictor
-      %Sooth.Predictor{
-        error_event: 0,
-        contexts: vec([
-          %Sooth.Context{id: 0, count: 1, statistics: vec([%Sooth.Statistic{event: 3, count: 1}])}
-        ])
-      }
+      #Sooth.Predictor<error_event: 0, context_set: [0], context_map: %{0 => #Sooth.Context<id: 0, count: 1, statistic_set: [3], statistic_objects: %{3 => %Sooth.Statistic{count: 1, event: 3}}>}>
       iex> count
       1
   """
@@ -250,9 +240,18 @@ defmodule Sooth.Predictor do
           :include_statistic
         ) :: {Predictor.t(), Sooth.Statistic.t()}
   def observe(predictor, id, event, :include_statistic) do
-    {predictor, context, index} = find_context(predictor, id)
+    {predictor, context} =
+      case Map.get(predictor.context_map, id) do
+        nil ->
+          context = Context.new(id)
+          {put_in(predictor.context_set, :gb_sets.add(id, predictor.context_set)), context}
+
+        context ->
+          {predictor, context}
+      end
+
     {context, statistic} = Context.observe(context, event)
-    {put_in(predictor.contexts[index], context), statistic}
+    {put_in(predictor.context_map, Map.put(predictor.context_map, id, context)), statistic}
   end
 
   @spec select(Predictor.t(), non_neg_integer(), non_neg_integer()) :: non_neg_integer()
@@ -295,29 +294,32 @@ defmodule Sooth.Predictor do
   def select(predictor, _id, 0), do: predictor.error_event
 
   def select(predictor, id, limit) do
-    {_, context, _} = find_context(predictor, id)
-
-    cond do
-      limit > context.count ->
+    case Map.get(predictor.context_map, id) do
+      nil ->
         predictor.error_event
 
-      true ->
-        select_event(
-          context.statistics,
-          limit,
-          0,
-          vec_size(context.statistics) - 1,
-          predictor.error_event
-        )
+      context ->
+        cond do
+          limit > context.count ->
+            predictor.error_event
+
+          true ->
+            select_event(
+              :gb_sets.iterator(context.statistic_set),
+              limit,
+              context.statistic_objects
+            )
+        end
     end
   end
 
-  defp select_event(statistics, limit, index, last, err) do
-    statistic = statistics[index]
+  defp select_event(stat_iterator, limit, stat_map) do
+    {stat_int, stat_iterator} = :gb_sets.next(stat_iterator)
+    statistic = Map.get(stat_map, stat_int)
 
     cond do
       limit > statistic.count ->
-        select_event(statistics, limit - statistic.count, index + 1, last, err)
+        select_event(stat_iterator, limit - statistic.count, stat_map)
 
       true ->
         statistic.event
@@ -355,53 +357,31 @@ defmodule Sooth.Predictor do
       1.5849625007211563
   """
   def surprise(predictor, id, event) do
-    {_, context, _} = find_context(predictor, id)
-
-    cond do
-      context.count == 0 ->
+    case Map.get(predictor.context_map, id) do
+      nil ->
         nil
 
-      true ->
-        {_, statistic, _} = Context.find_statistic(context, event)
-
-        if statistic.count == 0 do
-          nil
-        else
-          -log2(statistic.count / context.count)
+      context ->
+        case Context.find_statistic(context, event) do
+          nil -> nil
+          statistic -> -log2(statistic.count / context.count)
         end
     end
   end
+end
 
-  @spec find_context(Predictor.t(), non_neg_integer()) ::
-          {Predictor.t(), Context.t(), non_neg_integer()}
-  @doc """
-  Find a context in the predictor.
+defimpl Inspect, for: Sooth.Predictor do
+  def inspect(
+        %Sooth.Predictor{
+          error_event: error_event,
+          context_set: context_set,
+          context_map: context_map
+        } = _predictor,
+        _opts
+      ) do
+    context_set = inspect(:gb_sets.to_list(context_set))
+    context_map = inspect(context_map)
 
-  This is an implementation detail and should not be used directly.
-  """
-  def find_context(%Predictor{contexts: contexts} = predictor, id) do
-    case binary_search(contexts, id, 0, vec_size(contexts) - 1) do
-      {:found, context, index} -> {predictor, context, index}
-      {:not_found, context, index} -> {insert_context(predictor, index, context), context, index}
-    end
-  end
-
-  defp binary_search(contexts, id, low, high) when low <= high do
-    mid = low + div(high - low, 2)
-    context = contexts[mid]
-
-    cond do
-      context.id == id -> {:found, context, mid}
-      context.id > id and mid == 0 -> {:not_found, Context.new(id), low}
-      context.id > id -> binary_search(contexts, id, low, mid - 1)
-      context.id < id -> binary_search(contexts, id, mid + 1, high)
-    end
-  end
-
-  defp binary_search(_, id, low, _), do: {:not_found, Context.new(id), low}
-
-  defp insert_context(%Predictor{contexts: contexts} = predictor, index, context) do
-    {left, right} = Vector.split(contexts, index)
-    %Predictor{predictor | contexts: Vector.append(left, context) +++ right}
+    "#Sooth.Predictor<error_event: #{inspect(error_event)}, context_set: #{context_set}, context_map: #{context_map}>"
   end
 end

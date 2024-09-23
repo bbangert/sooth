@@ -7,9 +7,6 @@ defmodule Sooth.Context do
   """
   use TypedStruct
 
-  import Aja
-
-  alias Aja.Vector
   alias Sooth.Statistic
   alias Sooth.Context
 
@@ -18,7 +15,8 @@ defmodule Sooth.Context do
 
     field(:id, non_neg_integer())
     field(:count, non_neg_integer())
-    field(:statistics, Vector.t(Statistic.t()))
+    field(:statistic_set, :gb_sets)
+    field(:statistic_objects, map())
   end
 
   @spec new(non_neg_integer()) :: Sooth.Context.t()
@@ -28,10 +26,10 @@ defmodule Sooth.Context do
   ## Examples
 
       iex> Sooth.Context.new(0)
-      %Sooth.Context{id: 0, count: 0, statistics: vec([])}
+      #Sooth.Context<id: 0, count: 0, statistic_set: [], statistic_objects: %{}>
   """
   def new(id) do
-    %Sooth.Context{id: id, count: 0, statistics: Vector.new()}
+    %Sooth.Context{id: id, count: 0, statistic_set: :gb_sets.new(), statistic_objects: %{}}
   end
 
   @spec observe(Sooth.Context.t(), non_neg_integer()) :: {Sooth.Context.t(), Sooth.Statistic.t()}
@@ -43,47 +41,57 @@ defmodule Sooth.Context do
       iex> context = Sooth.Context.new(0)
       iex> {context, _} = Sooth.Context.observe(context, 3)
       iex> context
-      %Sooth.Context{id: 0, count: 1, statistics: vec([%Sooth.Statistic{event: 3, count: 1}])}
+      #Sooth.Context<id: 0, count: 1, statistic_set: [3], statistic_objects: %{3 => %Sooth.Statistic{count: 1, event: 3}}>
   """
   def observe(context, event) do
-    {context, statistic, index} = find_statistic(context, event)
-    statistic = Statistic.increment(statistic)
-    {%Context{put_in(context.statistics[index], statistic) | count: context.count + 1}, statistic}
+    {context, statistic} =
+      case find_statistic(context, event) do
+        nil ->
+          statistic = Statistic.new(event, 1)
+          {put_in(context.statistic_set, :gb_sets.add(event, context.statistic_set)), statistic}
+
+        statistic ->
+          {context, Statistic.increment(statistic)}
+      end
+
+    {%Context{
+       context
+       | count: context.count + 1,
+         statistic_objects: Map.put(context.statistic_objects, event, statistic)
+     }, statistic}
   end
 
-  @spec find_statistic(Sooth.Context.t(), non_neg_integer()) ::
-          {Sooth.Context.t(), Sooth.Statistic.t(), non_neg_integer()}
+  @spec find_statistic(Sooth.Context.t(), non_neg_integer()) :: Sooth.Statistic.t() | nil
   @doc """
   Find a statistic in a context.
 
   This is an implementation detail and should not be used directly.
   """
-  def find_statistic(%Context{statistics: statistics} = context, event) do
-    case binary_search(statistics, event, 0, vec_size(statistics) - 1) do
-      {:found, statistic, index} ->
-        {context, statistic, index}
-
-      {:not_found, statistic, index} ->
-        {insert_statistic(context, index, statistic), statistic, index}
-    end
+  def find_statistic(context, event) do
+    Map.get(context.statistic_objects, event)
   end
 
-  defp binary_search(statistics, event, low, high) when low <= high do
-    mid = low + div(high - low, 2)
-    statistic = statistics[mid]
-
-    cond do
-      statistic.event == event -> {:found, statistic, mid}
-      statistic.event > event and mid == 0 -> {:not_found, Statistic.new(event, 0), low}
-      statistic.event > event -> binary_search(statistics, event, low, mid - 1)
-      statistic.event < event -> binary_search(statistics, event, mid + 1, high)
-    end
+  def walk_statistics(context) do
+    Enum.map(:gb_sets.to_list(context.statistic_set), fn event ->
+      Map.get(context.statistic_objects, event)
+    end)
   end
+end
 
-  defp binary_search(_, event, low, _), do: {:not_found, Statistic.new(event, 0), low}
+defimpl Inspect, for: Sooth.Context do
+  @doc false
+  def inspect(
+        %Sooth.Context{
+          id: id,
+          count: count,
+          statistic_set: statistic_set,
+          statistic_objects: statistic_objects
+        },
+        _opts
+      ) do
+    stat_set = inspect(:gb_sets.to_list(statistic_set))
+    stat_objs = inspect(statistic_objects)
 
-  defp insert_statistic(%Context{statistics: statistics} = context, index, statistic) do
-    {left, right} = Vector.split(statistics, index)
-    %Context{context | statistics: Vector.append(left, statistic) +++ right}
+    "#Sooth.Context<id: #{id}, count: #{count}, statistic_set: #{stat_set}, statistic_objects: #{stat_objs}>"
   end
 end
