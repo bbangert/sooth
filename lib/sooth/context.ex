@@ -15,7 +15,7 @@ defmodule Sooth.Context do
 
     field(:id, non_neg_integer())
     field(:count, non_neg_integer())
-    field(:statistic_set, :gb_sets)
+    field(:statistic_set, :gb_sets.set())
     field(:statistic_objects, map())
   end
 
@@ -48,7 +48,8 @@ defmodule Sooth.Context do
       case find_statistic(context, event) do
         nil ->
           statistic = Statistic.new(event, 1)
-          {put_in(context.statistic_set, :gb_sets.add(event, context.statistic_set)), statistic}
+          statistic_set = :gb_sets.add(event, context.statistic_set)
+          {put_in(context.statistic_set, statistic_set), statistic}
 
         statistic ->
           {context, Statistic.increment(statistic)}

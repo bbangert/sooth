@@ -15,11 +15,11 @@ defmodule Sooth.Predictor do
     @typedoc "A Predictor of error_event/contexts"
 
     field(:error_event, non_neg_integer())
-    field(:context_set, :gb_sets)
+    field(:context_set, :gb_sets.set())
     field(:context_map, map())
   end
 
-  @spec new(non_neg_integer()) :: Predictor.t()
+  @spec new(non_neg_integer()) :: Sooth.Predictor.t()
   @doc """
   Returns a new Sooth.Predictor.
 
