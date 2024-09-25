@@ -136,22 +136,18 @@ defmodule Sooth.Predictor do
       ...> |> Sooth.Predictor.observe(1, 3)
       ...> |> Sooth.Predictor.observe(1, 4)
       iex> Sooth.Predictor.uncertainty(predictor, 0)
-      1.5
+      {:ok, 1.5}
       iex> Sooth.Predictor.uncertainty(predictor, 1)
-      1.584962500721156
+      {:ok, 1.584962500721156}
       iex> Sooth.Predictor.uncertainty(predictor, 2)
-      nil
+      :error
   """
   def uncertainty(predictor, id) do
-    case Map.get(predictor.context_map, id) do
-      nil ->
-        nil
-
-      context ->
-        Enum.reduce(Map.values(context.statistic_objects), 0.0, fn stat, acc ->
-          frequency = stat.count / context.count
-          acc - frequency * log2(frequency)
-        end)
+    with {:ok, context} <- Map.fetch(predictor.context_map, id) do
+      Enum.reduce(Map.values(context.statistic_objects), {:ok, 0.0}, fn stat, {:ok, acc} ->
+        frequency = stat.count / context.count
+        {:ok, acc - frequency * log2(frequency)}
+      end)
     end
   end
 
@@ -183,15 +179,11 @@ defmodule Sooth.Predictor do
       1.0
   """
   def frequency(predictor, id, event) do
-    case Map.get(predictor.context_map, id) do
-      nil ->
-        0.0
-
-      context ->
-        case Map.get(context.statistic_objects, event) do
-          nil -> 0.0
-          stat -> stat.count / context.count
-        end
+    with {:ok, context} <- Map.fetch(predictor.context_map, id),
+         {:ok, statistic} <- Context.fetch_statistic(context, event) do
+      statistic.count / context.count
+    else
+      _ -> 0.0
     end
   end
 
@@ -294,35 +286,19 @@ defmodule Sooth.Predictor do
   def select(predictor, _id, 0), do: predictor.error_event
 
   def select(predictor, id, limit) do
-    case Map.get(predictor.context_map, id) do
-      nil ->
-        predictor.error_event
-
-      context ->
-        cond do
-          limit > context.count ->
-            predictor.error_event
-
-          true ->
-            select_event(
-              :gb_sets.iterator(context.statistic_set),
-              limit,
-              context.statistic_objects
-            )
-        end
+    with {:ok, ctx} when limit <= ctx.count <- Map.fetch(predictor.context_map, id) do
+      select_event(:gb_sets.iterator(ctx.statistic_set), limit, ctx.statistic_objects)
+    else
+      _ -> predictor.error_event
     end
   end
 
   defp select_event(stat_iterator, limit, stat_map) do
     {stat_int, stat_iterator} = :gb_sets.next(stat_iterator)
-    statistic = Map.get(stat_map, stat_int)
 
-    cond do
-      limit > statistic.count ->
-        select_event(stat_iterator, limit - statistic.count, stat_map)
-
-      true ->
-        statistic.event
+    case Map.fetch!(stat_map, stat_int) do
+      stat when limit > stat.count -> select_event(stat_iterator, limit - stat.count, stat_map)
+      stat -> stat.event
     end
   end
 
@@ -350,22 +326,16 @@ defmodule Sooth.Predictor do
       ...> |> Sooth.Predictor.observe(1, 3)
       ...> |> Sooth.Predictor.observe(1, 4)
       iex> Sooth.Predictor.surprise(predictor, 0, 3)
-      0.5849625007211563
+      {:ok, 0.5849625007211563}
       iex> Sooth.Predictor.surprise(predictor, 0, 4)
-      nil
+      :error
       iex> Sooth.Predictor.surprise(predictor, 1, 2)
-      1.5849625007211563
+      {:ok, 1.5849625007211563}
   """
   def surprise(predictor, id, event) do
-    case Map.get(predictor.context_map, id) do
-      nil ->
-        nil
-
-      context ->
-        case Context.find_statistic(context, event) do
-          nil -> nil
-          statistic -> -log2(statistic.count / context.count)
-        end
+    with {:ok, context} <- Map.fetch(predictor.context_map, id),
+         {:ok, statistic} <- Context.fetch_statistic(context, event) do
+      {:ok, -log2(statistic.count / context.count)}
     end
   end
 end

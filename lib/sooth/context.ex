@@ -72,6 +72,26 @@ defmodule Sooth.Context do
     Map.get(context.statistic_objects, event)
   end
 
+  @spec fetch_statistic(Sooth.Context.t(), non_neg_integer()) ::
+          {:ok, Sooth.Statistic.t()} | :error
+  @doc """
+  Fetch a statistic in a context.
+
+  This is an implementation detail and should not be used directly.
+
+  ## Examples
+
+      iex> context = Sooth.Context.new(0)
+      iex> Sooth.Context.fetch_statistic(context, 3)
+      :error
+      iex> {context, _} = Sooth.Context.observe(context, 3)
+      iex> Sooth.Context.fetch_statistic(context, 3)
+      {:ok, %Sooth.Statistic{count: 1, event: 3}}
+  """
+  def fetch_statistic(context, event) do
+    Map.fetch(context.statistic_objects, event)
+  end
+
   def walk_statistics(context) do
     Enum.map(:gb_sets.to_list(context.statistic_set), fn event ->
       Map.get(context.statistic_objects, event)

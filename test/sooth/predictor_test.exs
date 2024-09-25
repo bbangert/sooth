@@ -71,7 +71,7 @@ defmodule SoothPredictorTest do
   describe "uncertainty/2" do
     test "has no uncertainty for a new context" do
       predictor = Predictor.new(0)
-      assert Predictor.uncertainty(predictor, 0) == nil
+      assert Predictor.uncertainty(predictor, 0) == :error
       assert Predictor.count(predictor, 1) == 0
     end
 
@@ -80,7 +80,7 @@ defmodule SoothPredictorTest do
         Predictor.new(0)
         |> Predictor.observe(1, 3)
 
-      assert Predictor.uncertainty(predictor, 1) == 0
+      assert match?({:ok, 0.0}, Predictor.uncertainty(predictor, 1))
     end
 
     test "has maximal uncertainty for a uniform distribution" do
@@ -88,14 +88,14 @@ defmodule SoothPredictorTest do
         1..256
         |> Enum.reduce(Predictor.new(42), &Predictor.observe(&2, 1, &1))
 
-      assert Predictor.uncertainty(predictor, 1) == 8
+      assert match?({:ok, 8.0}, Predictor.uncertainty(predictor, 1))
     end
   end
 
   describe "surprise" do
     test "has no surprise for a new context" do
       predictor = Predictor.new(0)
-      assert Predictor.surprise(predictor, 0, 0) == nil
+      assert Predictor.surprise(predictor, 0, 0) == :error
     end
 
     test "has no surprise for a new event" do
@@ -103,7 +103,7 @@ defmodule SoothPredictorTest do
         Predictor.new(42)
         |> Predictor.observe(1, 3)
 
-      assert Predictor.surprise(predictor, 1, 0) == nil
+      assert Predictor.surprise(predictor, 1, 0) == :error
     end
 
     test "has zero surprise for a lone event" do
@@ -111,7 +111,7 @@ defmodule SoothPredictorTest do
         Predictor.new(42)
         |> Predictor.observe(1, 3)
 
-      assert Predictor.surprise(predictor, 1, 3) == 0
+      assert Predictor.surprise(predictor, 1, 3) == {:ok, 0}
     end
 
     test "has uniform surprise for a uniform distribution" do
@@ -119,7 +119,7 @@ defmodule SoothPredictorTest do
         1..256
         |> Enum.reduce(Predictor.new(42), &Predictor.observe(&2, 1, &1))
 
-      assert Predictor.surprise(predictor, 1, 3) == 8
+      assert Predictor.surprise(predictor, 1, 3) == {:ok, 8}
     end
   end
 
