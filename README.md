@@ -13,7 +13,7 @@ This package can be installed by adding `sooth` to your list of dependencies in 
 ```elixir
 def deps do
   [
-    {:sooth, "~> 0.3.2"}
+    {:sooth, "~> 0.4.0"}
   ]
 end
 ```
