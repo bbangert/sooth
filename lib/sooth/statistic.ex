@@ -12,7 +12,6 @@ defmodule Sooth.Statistic do
     field(:count, non_neg_integer())
   end
 
-  @spec new(non_neg_integer(), non_neg_integer()) :: Sooth.Statistic.t()
   @doc """
   Create a new statistic.
 
@@ -21,11 +20,11 @@ defmodule Sooth.Statistic do
       iex> Sooth.Statistic.new(0, 0)
       %Sooth.Statistic{event: 0, count: 0}
   """
+  @spec new(non_neg_integer(), non_neg_integer()) :: Sooth.Statistic.t()
   def new(event, count) do
     %Sooth.Statistic{event: event, count: count}
   end
 
-  @spec increment(Sooth.Statistic.t()) :: Sooth.Statistic.t()
   @doc """
   Increment the count of a statistic.
 
@@ -34,6 +33,7 @@ defmodule Sooth.Statistic do
       iex> Sooth.Statistic.increment(%Sooth.Statistic{event: 0, count: 0})
       %Sooth.Statistic{event: 0, count: 1}
   """
+  @spec increment(Sooth.Statistic.t()) :: Sooth.Statistic.t()
   def increment(%Sooth.Statistic{count: count} = statistic) do
     %Sooth.Statistic{statistic | count: count + 1}
   end

@@ -80,7 +80,7 @@ defmodule SoothPredictorTest do
         Predictor.new(0)
         |> Predictor.observe(1, 3)
 
-      assert match?({:ok, 0.0}, Predictor.uncertainty(predictor, 1))
+      assert match?({:ok, +0.0}, Predictor.uncertainty(predictor, 1))
     end
 
     test "has maximal uncertainty for a uniform distribution" do

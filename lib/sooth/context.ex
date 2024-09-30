@@ -19,7 +19,6 @@ defmodule Sooth.Context do
     field(:statistic_objects, map())
   end
 
-  @spec new(non_neg_integer()) :: Sooth.Context.t()
   @doc """
   Create a new context.
 
@@ -28,11 +27,11 @@ defmodule Sooth.Context do
       iex> Sooth.Context.new(0)
       #Sooth.Context<id: 0, count: 0, statistic_set: [], statistic_objects: %{}>
   """
+  @spec new(non_neg_integer()) :: Sooth.Context.t()
   def new(id) do
     %Sooth.Context{id: id, count: 0, statistic_set: :gb_sets.new(), statistic_objects: %{}}
   end
 
-  @spec observe(Sooth.Context.t(), non_neg_integer()) :: {Sooth.Context.t(), Sooth.Statistic.t()}
   @doc """
   Observe an event in a context.
 
@@ -43,6 +42,7 @@ defmodule Sooth.Context do
       iex> context
       #Sooth.Context<id: 0, count: 1, statistic_set: [3], statistic_objects: %{3 => %Sooth.Statistic{count: 1, event: 3}}>
   """
+  @spec observe(Sooth.Context.t(), non_neg_integer()) :: {Sooth.Context.t(), Sooth.Statistic.t()}
   def observe(context, event) do
     {context, statistic} =
       case find_statistic(context, event) do
@@ -62,18 +62,16 @@ defmodule Sooth.Context do
      }, statistic}
   end
 
-  @spec find_statistic(Sooth.Context.t(), non_neg_integer()) :: Sooth.Statistic.t() | nil
   @doc """
   Find a statistic in a context.
 
   This is an implementation detail and should not be used directly.
   """
+  @spec find_statistic(Sooth.Context.t(), non_neg_integer()) :: Sooth.Statistic.t() | nil
   def find_statistic(context, event) do
     Map.get(context.statistic_objects, event)
   end
 
-  @spec fetch_statistic(Sooth.Context.t(), non_neg_integer()) ::
-          {:ok, Sooth.Statistic.t()} | :error
   @doc """
   Fetch a statistic in a context.
 
@@ -88,6 +86,8 @@ defmodule Sooth.Context do
       iex> Sooth.Context.fetch_statistic(context, 3)
       {:ok, %Sooth.Statistic{count: 1, event: 3}}
   """
+  @spec fetch_statistic(Sooth.Context.t(), non_neg_integer()) ::
+          {:ok, Sooth.Statistic.t()} | :error
   def fetch_statistic(context, event) do
     Map.fetch(context.statistic_objects, event)
   end

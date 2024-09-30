@@ -19,7 +19,6 @@ defmodule Sooth.Predictor do
     field(:context_map, map())
   end
 
-  @spec new(non_neg_integer()) :: Sooth.Predictor.t()
   @doc """
   Returns a new Sooth.Predictor.
 
@@ -31,10 +30,10 @@ defmodule Sooth.Predictor do
       iex> Sooth.Predictor.new(2)
       #Sooth.Predictor<error_event: 2, context_set: [], context_map: %{}>
   """
+  @spec new(non_neg_integer()) :: Sooth.Predictor.t()
   def new(error_event),
     do: %Predictor{error_event: error_event, context_set: :gb_sets.new(), context_map: %{}}
 
-  @spec count(Predictor.t(), non_neg_integer()) :: non_neg_integer()
   @doc """
   Return the number of times the context has been observed.
 
@@ -54,6 +53,7 @@ defmodule Sooth.Predictor do
       iex> Sooth.Predictor.count(predictor, 3)
       0
   """
+  @spec count(Predictor.t(), non_neg_integer()) :: non_neg_integer()
   def count(predictor, id) do
     case Map.get(predictor.context_map, id) do
       nil -> 0
@@ -61,7 +61,6 @@ defmodule Sooth.Predictor do
     end
   end
 
-  @spec size(Predictor.t(), non_neg_integer()) :: non_neg_integer()
   @doc """
   Return the number of different events that have been observed within the given context.
 
@@ -79,6 +78,7 @@ defmodule Sooth.Predictor do
       iex> Sooth.Predictor.size(predictor, 0)
       2
   """
+  @spec size(Predictor.t(), non_neg_integer()) :: non_neg_integer()
   def size(predictor, id) do
     case Map.get(predictor.context_map, id) do
       nil -> 0
@@ -86,7 +86,6 @@ defmodule Sooth.Predictor do
     end
   end
 
-  @spec distribution(Predictor.t(), non_neg_integer()) :: nil | list({non_neg_integer(), float()})
   @doc """
   Return a stream that yields each observed event within the context together with its
   probability.
@@ -105,6 +104,7 @@ defmodule Sooth.Predictor do
       iex> Sooth.Predictor.distribution(predictor, 1)
       nil
   """
+  @spec distribution(Predictor.t(), non_neg_integer()) :: nil | list({non_neg_integer(), float()})
   def distribution(predictor, id) do
     case Map.get(predictor.context_map, id) do
       nil -> nil
@@ -142,6 +142,7 @@ defmodule Sooth.Predictor do
       iex> Sooth.Predictor.uncertainty(predictor, 2)
       :error
   """
+  @spec uncertainty(Predictor.t(), non_neg_integer()) :: :error | {:ok, float()}
   def uncertainty(predictor, id) do
     with {:ok, context} <- Map.fetch(predictor.context_map, id) do
       Enum.reduce(Map.values(context.statistic_objects), {:ok, 0.0}, fn stat, {:ok, acc} ->
@@ -151,7 +152,6 @@ defmodule Sooth.Predictor do
     end
   end
 
-  @spec frequency(Predictor.t(), non_neg_integer(), non_neg_integer()) :: float()
   @doc """
   Return a number indicating the frequency that the event has been observed within the
   given context.
@@ -178,6 +178,7 @@ defmodule Sooth.Predictor do
       iex> Sooth.Predictor.frequency(predictor, 1, 2)
       1.0
   """
+  @spec frequency(Predictor.t(), non_neg_integer(), non_neg_integer()) :: float()
   def frequency(predictor, id, event) do
     with {:ok, context} <- Map.fetch(predictor.context_map, id),
          {:ok, statistic} <- Context.fetch_statistic(context, event) do
@@ -187,7 +188,6 @@ defmodule Sooth.Predictor do
     end
   end
 
-  @spec observe(Predictor.t(), non_neg_integer(), non_neg_integer()) :: Predictor.t()
   @doc """
   Register an observation of the given event within the given context.
 
@@ -209,6 +209,7 @@ defmodule Sooth.Predictor do
       iex> count
       1
   """
+  @spec observe(Predictor.t(), non_neg_integer(), non_neg_integer()) :: Predictor.t()
   def observe(predictor, id, event) do
     {context, _} = observe(predictor, id, event, :include_statistic)
     context
@@ -283,6 +284,7 @@ defmodule Sooth.Predictor do
       99
 
   """
+  @spec select(Predictor.t(), non_neg_integer(), non_neg_integer()) :: non_neg_integer()
   def select(predictor, _id, 0), do: predictor.error_event
 
   def select(predictor, id, limit) do
@@ -332,6 +334,7 @@ defmodule Sooth.Predictor do
       iex> Sooth.Predictor.surprise(predictor, 1, 2)
       {:ok, 1.5849625007211563}
   """
+  @spec surprise(Predictor.t(), non_neg_integer(), non_neg_integer()) :: :error | {:ok, float()}
   def surprise(predictor, id, event) do
     with {:ok, context} <- Map.fetch(predictor.context_map, id),
          {:ok, statistic} <- Context.fetch_statistic(context, event) do
