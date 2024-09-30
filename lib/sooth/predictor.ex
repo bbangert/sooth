@@ -247,7 +247,26 @@ defmodule Sooth.Predictor do
     {put_in(predictor.context_map, Map.put(predictor.context_map, id, context)), statistic}
   end
 
-  @spec select(Predictor.t(), non_neg_integer(), non_neg_integer()) :: non_neg_integer()
+  @doc """
+  Return a random event that may occur in the given context. The event is selected by
+  randomly choosing a number between 1 and the `count` of the context.
+
+  Returns:
+    An event that has been previously observed in the given context, or the error_event
+    if the `count` of the context is zero.
+
+  ## Parameters
+  - `predictor` - The predictor that will select the event.
+  - `id` - A number that provides a context for observations.
+
+  """
+  @spec fetch_random_select(Predictor.t(), non_neg_integer()) :: :error | {:ok, non_neg_integer()}
+  def fetch_random_select(predictor, id) do
+    with {:ok, context} <- Map.fetch(predictor.context_map, id) do
+      {:ok, select(predictor, id, Enum.random(1..context.count))}
+    end
+  end
+
   @doc """
   Return an event that may occur in the given context, based on the limit, which should be
   between 1 and #count. The event is selected by iterating through all observed events for
