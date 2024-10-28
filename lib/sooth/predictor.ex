@@ -108,7 +108,7 @@ defmodule Sooth.Predictor do
   def distribution(predictor, id) do
     case Map.get(predictor.context_map, id) do
       nil -> nil
-      context -> Enum.map(Context.walk_statistics(context), &{&1.event, &1.count / context.count})
+      context -> Enum.map(Context.to_list(context), &{&1.event, &1.count / context.count})
     end
   end
 

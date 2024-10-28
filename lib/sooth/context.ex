@@ -92,7 +92,20 @@ defmodule Sooth.Context do
     Map.fetch(context.statistic_objects, event)
   end
 
-  def walk_statistics(context) do
+  @doc """
+  Convert a context to a list of statistics.
+
+  ## Examples
+
+      iex> context = Sooth.Context.new(0)
+      iex> Sooth.Context.to_list(context)
+      []
+      iex> {context, _} = Sooth.Context.observe(context, 3)
+      iex> Sooth.Context.to_list(context)
+      [%Sooth.Statistic{count: 1, event: 3}]
+  """
+  @spec to_list(Sooth.Context.t()) :: list(Sooth.Statistic.t())
+  def to_list(context) do
     Enum.map(:gb_sets.to_list(context.statistic_set), fn event ->
       Map.get(context.statistic_objects, event)
     end)
