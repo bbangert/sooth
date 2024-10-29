@@ -7,8 +7,8 @@ defmodule Sooth.Context do
   """
   use TypedStruct
 
-  alias Sooth.Statistic
   alias Sooth.Context
+  alias Sooth.Statistic
 
   typedstruct enforce: true do
     @typedoc "A Context of id/count/statistics"

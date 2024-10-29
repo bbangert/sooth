@@ -307,10 +307,12 @@ defmodule Sooth.Predictor do
   def select(predictor, _id, 0), do: predictor.error_event
 
   def select(predictor, id, limit) do
-    with {:ok, ctx} when limit <= ctx.count <- Map.fetch(predictor.context_map, id) do
-      select_event(:gb_sets.iterator(ctx.statistic_set), limit, ctx.statistic_objects)
-    else
-      _ -> predictor.error_event
+    case Map.fetch(predictor.context_map, id) do
+      {:ok, ctx} when limit <= ctx.count ->
+        select_event(:gb_sets.iterator(ctx.statistic_set), limit, ctx.statistic_objects)
+
+      _ ->
+        predictor.error_event
     end
   end
 
