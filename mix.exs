@@ -16,7 +16,8 @@ defmodule Sooth.MixProject do
       docs: docs(),
       package: package(),
       dialyzer: dialyzer(),
-      test_coverage: [tool: ExCoveralls]
+      test_coverage: [tool: ExCoveralls],
+      source_url: "https://github.com/bbangert/sooth"
     ]
   end
 
@@ -44,8 +45,17 @@ defmodule Sooth.MixProject do
 
   def docs do
     [
-      main: "Sooth",
-      source_url: "https://github.com/bbangert/sooth"
+      main: "introduction",
+      extras: ["guides/introduction.md"],
+      groups_for_modules: [
+        Api: [
+          ~r/Sooth.Predictor/
+        ],
+        "Internal modules": [
+          ~r/Sooth.Context/,
+          ~r/Sooth.Statistic/
+        ]
+      ]
     ]
   end
 
