@@ -34,7 +34,8 @@ model = Sooth.Predictor.new(0)
 # Each integer maps to a normalized word in a dictionary, 1 representing the sentence start/finish
 # This is what 'learning' a sentence in pairs of words looks like.
 model = 
-  Sooth.Predictor.observe([1, 10], 2)
+  model
+  |> Sooth.Predictor.observe([1, 10], 2)
   |> Sooth.Predictor.observe([10, 2], 3)
   |> Sooth.Predictor.observe([2, 3], 5)
   |> Sooth.Predictor.observe([3, 5], 9)
